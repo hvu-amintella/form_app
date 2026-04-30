@@ -1002,9 +1002,11 @@ function GenericFormGenerator({ onArchiveRecord, onArchiveMessage }) {
       )
       setMessage(
         nextSchema.fieldCount
-          ? nextSchema.mode === 'flat'
-            ? `${nextSchema.fieldCount} champ(s) proposes depuis le texte du PDF plat. L export ajoutera une page de reponses au PDF.`
-            : `${nextSchema.fieldCount} champ(s) detecte(s). L app correspondante est prete.`
+          ? nextSchema.mode === 'scanned-saclay'
+            ? `${nextSchema.fieldCount} champ(s) Saclay proposes pour ce PDF scanne. L export ajoutera une page de reponses au PDF.`
+            : nextSchema.mode === 'flat'
+              ? `${nextSchema.fieldCount} champ(s) proposes depuis le texte du PDF plat. L export ajoutera une page de reponses au PDF.`
+              : `${nextSchema.fieldCount} champ(s) detecte(s). L app correspondante est prete.`
           : nextSchema.kind === 'pdf'
             ? 'Aucun champ PDF remplissable ni texte exploitable detecte. Un PDF scanne demandera une etape OCR/layout.'
             : 'Aucun champ modifiable detecte automatiquement dans ce document.',

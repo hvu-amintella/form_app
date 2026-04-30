@@ -107,13 +107,14 @@ Processing:
 - reads real PDF form fields
 - maps text fields, checkboxes, radio groups, dropdowns, and option lists into the shared generated-form UI
 - if no real form field exists, inspects PDF text streams and proposes text fields from likely labels
+- if no text is extractable, falls back to the known Saclay inspection structure for scanned Saclay forms
 - for flat PDFs, appends a response page to the original PDF instead of writing into unknown visual coordinates
 
 Output:
 
 - a filled `.pdf`
 
-Scanned image-only PDFs are not supported yet. They need OCR and visual layout detection before fields can be inferred reliably.
+Generic scanned image-only PDFs still need OCR and visual layout detection before fields can be inferred reliably.
 
 ## Asset Layout
 

@@ -7,9 +7,19 @@ import {
   StandardFonts,
   PDFTextField,
 } from 'pdf-lib'
+import {
+  GENERAL_FIELDS,
+  IMPROVEMENTS,
+  QUALITY_OPTIONS,
+  SECTION_1,
+  SECTION_2,
+  SECTION_3,
+  SECTION_4,
+} from './constants'
 
 const PDF_MIME_TYPE = 'application/pdf'
 const FLAT_PDF_SECTION_TITLE = 'Champs detectes dans le PDF plat'
+const SCANNED_PDF_SECTION_PREFIX = 'PDF scanne - '
 const TEXT_DECODER = new TextDecoder('latin1')
 const UTF8_DECODER = new TextDecoder('utf-8')
 const MAX_FLAT_FIELDS = 80
@@ -95,6 +105,18 @@ function cleanFlatPdfLabel(value) {
   return normalizePdfText(value)
     .replace(/^[\d\s.)-]+/, '')
     .replace(/[:.\s]+$/g, '')
+}
+
+function toPdfDrawText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/[^\x20-\x7e]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function isUsefulFlatPdfLabel(value) {
@@ -282,6 +304,108 @@ function createFlatPdfFields(textFragments) {
   return fields
 }
 
+function createSaclayScannedPdfSections() {
+  const createChoiceField = (id, title, label, options) => ({
+    id,
+    type: 'choice',
+    title,
+    label,
+    options: options.map((option) => ({ label: option })),
+    flatPdf: true,
+  })
+
+  const createTextField = (id, title, label) => ({
+    id,
+    type: 'text',
+    title,
+    label,
+    flatPdf: true,
+  })
+
+  const createCheckboxField = (id, title, label) => ({
+    id,
+    type: 'checkbox',
+    title,
+    label,
+    flatPdf: true,
+  })
+
+  return [
+    {
+      id: 'scanned-pdf-general',
+      title: `${SCANNED_PDF_SECTION_PREFIX}Informations generales`,
+      fields: GENERAL_FIELDS.map(([key, label]) => createTextField(`scanned-general-${key}`, `${SCANNED_PDF_SECTION_PREFIX}Informations generales`, label)),
+    },
+    {
+      id: 'scanned-pdf-section-1',
+      title: `${SCANNED_PDF_SECTION_PREFIX}Formations et habilitations`,
+      fields: [
+        ...SECTION_1.map(([key, label, options]) => createChoiceField(`scanned-section-1-${key}`, `${SCANNED_PDF_SECTION_PREFIX}Formations et habilitations`, label, options)),
+        createTextField('scanned-comments-1', `${SCANNED_PDF_SECTION_PREFIX}Formations et habilitations`, 'Commentaires'),
+      ],
+    },
+    {
+      id: 'scanned-pdf-section-2',
+      title: `${SCANNED_PDF_SECTION_PREFIX}Equipements des intervenants`,
+      fields: [
+        ...SECTION_2.map(([key, label, options]) => createChoiceField(`scanned-section-2-${key}`, `${SCANNED_PDF_SECTION_PREFIX}Equipements des intervenants`, label, options)),
+        createTextField('scanned-comments-2', `${SCANNED_PDF_SECTION_PREFIX}Equipements des intervenants`, 'Commentaires'),
+      ],
+    },
+    {
+      id: 'scanned-pdf-section-3',
+      title: `${SCANNED_PDF_SECTION_PREFIX}Produits de nettoyage`,
+      fields: [
+        ...SECTION_3.flatMap(([key, label]) => [
+          createChoiceField(`scanned-section-3-${key}-status`, `${SCANNED_PDF_SECTION_PREFIX}Produits de nettoyage`, label, ['OUI', 'NON']),
+          createTextField(`scanned-section-3-${key}-name`, `${SCANNED_PDF_SECTION_PREFIX}Produits de nettoyage`, `${label} - nom du produit`),
+        ]),
+        createTextField('scanned-comments-3', `${SCANNED_PDF_SECTION_PREFIX}Produits de nettoyage`, 'Commentaires'),
+      ],
+    },
+    {
+      id: 'scanned-pdf-section-4',
+      title: `${SCANNED_PDF_SECTION_PREFIX}Materiels / documents`,
+      fields: [
+        ...SECTION_4.flatMap(([key, label, withState]) => [
+          createChoiceField(`scanned-section-4-${key}-status`, `${SCANNED_PDF_SECTION_PREFIX}Materiels / documents`, label, ['OUI', 'NON']),
+          ...(withState ? [createChoiceField(`scanned-section-4-${key}-state`, `${SCANNED_PDF_SECTION_PREFIX}Materiels / documents`, `${label} - etat`, ['Bon etat', 'Etat d usage', 'Vetuste'])] : []),
+        ]),
+        createTextField('scanned-comments-4', `${SCANNED_PDF_SECTION_PREFIX}Materiels / documents`, 'Commentaires'),
+      ],
+    },
+    {
+      id: 'scanned-pdf-section-5',
+      title: `${SCANNED_PDF_SECTION_PREFIX}Evaluation qualite`,
+      fields: [
+        createChoiceField('scanned-quality', `${SCANNED_PDF_SECTION_PREFIX}Evaluation qualite`, 'Niveau de qualite', QUALITY_OPTIONS.map(([label]) => label)),
+        createTextField('scanned-quality-comments', `${SCANNED_PDF_SECTION_PREFIX}Evaluation qualite`, 'Commentaires'),
+      ],
+    },
+    {
+      id: 'scanned-pdf-section-6',
+      title: `${SCANNED_PDF_SECTION_PREFIX}Remise en etat a prevoir`,
+      fields: [
+        ...IMPROVEMENTS.map((label) => createCheckboxField(`scanned-improve-${normalizeComparableText(label).replace(/[^a-z0-9]+/g, '-')}`, `${SCANNED_PDF_SECTION_PREFIX}Remise en etat a prevoir`, label)),
+        createTextField('scanned-improve-comments', `${SCANNED_PDF_SECTION_PREFIX}Remise en etat a prevoir`, 'Commentaires'),
+        createTextField('scanned-other-remarks', `${SCANNED_PDF_SECTION_PREFIX}Remise en etat a prevoir`, 'Autres remarques'),
+      ],
+    },
+  ]
+}
+
+function createSaclayScannedPdfSchema(fileName) {
+  const sections = createSaclayScannedPdfSections()
+
+  return {
+    kind: 'pdf',
+    fileName,
+    fieldCount: sections.reduce((total, section) => total + section.fields.length, 0),
+    sections,
+    mode: 'scanned-saclay',
+  }
+}
+
 export async function parseGenericPdfTemplate(file) {
   const buffer = await file.arrayBuffer()
   const pdfDoc = await PDFDocument.load(buffer)
@@ -299,6 +423,10 @@ export async function parseGenericPdfTemplate(file) {
   }
 
   const flatFields = createFlatPdfFields(await extractFlatPdfText(file))
+
+  if (!flatFields.length) {
+    return createSaclayScannedPdfSchema(file.name)
+  }
 
   return {
     kind: 'pdf',
@@ -319,7 +447,7 @@ export async function buildGenericPdfBlob(templateFile, schema, values) {
   const buffer = await templateFile.arrayBuffer()
   const pdfDoc = await PDFDocument.load(buffer)
 
-  if (schema.mode === 'flat') {
+  if (schema.mode === 'flat' || schema.mode === 'scanned-saclay') {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
     const fields = schema.sections.flatMap((section) => section.fields)
@@ -328,11 +456,14 @@ export async function buildGenericPdfBlob(templateFile, schema, values) {
 
     page.drawText('Reponses saisies depuis l app', { x: 48, y, size: 15, font: boldFont })
     y -= 28
-    page.drawText(schema.fileName || 'PDF plat', { x: 48, y, size: 10, font })
+    page.drawText(toPdfDrawText(schema.fileName || 'PDF plat'), { x: 48, y, size: 10, font })
     y -= 28
 
     fields.forEach((field) => {
-      const value = String(values[field.id] || '').trim()
+      const rawValue = field.type === 'checkbox'
+        ? (values[field.id] ? 'Oui' : '')
+        : values[field.id]
+      const value = toPdfDrawText(rawValue)
       if (!value) return
 
       if (y < 72) {
@@ -340,7 +471,7 @@ export async function buildGenericPdfBlob(templateFile, schema, values) {
         y = page.getHeight() - 56
       }
 
-      page.drawText(`${field.label}:`, { x: 48, y, size: 10, font: boldFont })
+      page.drawText(`${toPdfDrawText(field.label)}:`, { x: 48, y, size: 10, font: boldFont })
       y -= 14
       value.match(/.{1,95}(\s|$)|\S+/g)?.forEach((line) => {
         if (y < 72) {
