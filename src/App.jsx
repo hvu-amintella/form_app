@@ -983,7 +983,7 @@ function GenericFormGenerator({ onArchiveRecord, onArchiveMessage }) {
     if (!file) return
 
     setIsWorking(true)
-    setMessage('Analyse du document Word en cours...')
+    setMessage(isPdfFile(file) ? 'Analyse du PDF en cours...' : 'Analyse du document Word en cours...')
 
     try {
       if (!isPdfFile(file) && !isDocxFile(file)) {
@@ -1002,9 +1002,11 @@ function GenericFormGenerator({ onArchiveRecord, onArchiveMessage }) {
       )
       setMessage(
         nextSchema.fieldCount
-          ? `${nextSchema.fieldCount} champ(s) detecte(s). L app correspondante est prete.`
+          ? nextSchema.mode === 'flat'
+            ? `${nextSchema.fieldCount} champ(s) proposes depuis le texte du PDF plat. L export ajoutera une page de reponses au PDF.`
+            : `${nextSchema.fieldCount} champ(s) detecte(s). L app correspondante est prete.`
           : nextSchema.kind === 'pdf'
-            ? 'Aucun champ PDF remplissable detecte. Les PDF plats ou scannes demanderont une etape OCR/layout.'
+            ? 'Aucun champ PDF remplissable ni texte exploitable detecte. Un PDF scanne demandera une etape OCR/layout.'
             : 'Aucun champ modifiable detecte automatiquement dans ce document.',
       )
     } catch (error) {

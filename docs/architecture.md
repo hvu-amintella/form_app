@@ -95,23 +95,25 @@ Best suited for structured Word forms that use tables and Word checkbox controls
 
 ### `src/genericPdf.js`
 
-Generic fillable PDF generator engine.
+Generic PDF generator engine.
 
 Input:
 
-- a fillable `.pdf` file selected in the browser
+- a fillable or flat text-based `.pdf` file selected in the browser
 
 Processing:
 
 - opens the PDF with `pdf-lib`
 - reads real PDF form fields
 - maps text fields, checkboxes, radio groups, dropdowns, and option lists into the shared generated-form UI
+- if no real form field exists, inspects PDF text streams and proposes text fields from likely labels
+- for flat PDFs, appends a response page to the original PDF instead of writing into unknown visual coordinates
 
 Output:
 
 - a filled `.pdf`
 
-Flat PDFs and scanned PDFs are not supported yet. They need OCR and visual layout detection before fields can be inferred reliably.
+Scanned image-only PDFs are not supported yet. They need OCR and visual layout detection before fields can be inferred reliably.
 
 ## Asset Layout
 

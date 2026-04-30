@@ -37,10 +37,12 @@ The `Generateur` tab accepts:
 
 - `.docx` files that use tables, empty cells for answers, and Word checkbox controls
 - fillable `.pdf` files that contain real PDF form fields
+- flat text-based `.pdf` files, with inferred text fields and a filled response page appended to the PDF
 
 Current limits:
 
-- Flat or scanned PDFs are not parsed yet because they require OCR/layout detection.
+- Scanned image-only PDFs still require OCR/layout detection before fields can be inferred.
+- Flat PDF support is heuristic. It works best when labels are stored as selectable PDF text.
 - Generic `.docx` support is heuristic. It works best on structured table-based forms.
 - The Saclay-specific inspection flow remains available as the main `Inspection` tab.
 
